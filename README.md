@@ -1,13 +1,13 @@
 # simple-agent
 
-A simple AI agent with tool use and code execution, powered by SiliconFlow and OpenRouter.
+A simple AI agent with shell command execution, powered by SiliconFlow and OpenRouter.
 
 ## Features
 
-- ReAct loop (Think → Act → Observe)
-- Tool calling: file read/write, directory listing, Python code execution
-- Sandboxed code execution with timeout and output truncation
-- CLI interactive chat with Rich markdown rendering
+- ReAct loop (Think → Act → Observe) with streaming output
+- Shell command execution with dangerous command confirmation
+- Interactive model selection from provider's free model list
+- CLI chat with Rich markdown rendering
 - Support for SiliconFlow and OpenRouter (OpenAI-compatible API)
 
 ## Quick Start
@@ -30,6 +30,8 @@ uv sync
 uv run python main.py
 ```
 
+Select a model from the list, then start chatting.
+
 ## Configuration
 
 Edit `.env`:
@@ -37,8 +39,9 @@ Edit `.env`:
 ```env
 LLM_PROVIDER=siliconflow    # or "openrouter"
 SILICONFLOW_API_KEY=sk-...
-SILICONFLOW_MODEL=Qwen/Qwen2.5-72B-Instruct
 ```
+
+Only one API key is needed. Model selection is interactive at startup.
 
 ## CLI Commands
 
@@ -51,16 +54,14 @@ SILICONFLOW_MODEL=Qwen/Qwen2.5-72B-Instruct
 ## Architecture
 
 ```
-main.py       → CLI entry point
-agent.py      → ReAct loop orchestrator
-llm.py        → LLM client (OpenAI SDK)
-config.py     → Configuration loading
-formatter.py  → Rich terminal output
-tools/        → Tool registry + implementations
-  execute_code.py  → Sandboxed Python execution
-  read_file.py     → Read files
-  write_file.py    → Write files
-  list_directory.py → List directories
+main.py          → CLI entry + interactive model selection
+agent.py         → ReAct loop with streaming response
+llm.py           → LLM client (OpenAI SDK, stream=True)
+config.py        → Config + provider auto-detect + free model discovery
+formatter.py     → Rich terminal output (Windows UTF-8 compatible)
+tools/
+  __init__.py    → @tool decorator registry
+  run_command.py → Shell execution with danger confirmation
 ```
 
 ## License
