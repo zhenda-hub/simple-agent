@@ -1,6 +1,10 @@
 """Rich-based terminal output formatting."""
 
+import sys
+import io
+
 from rich.console import Console
+from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -8,7 +12,12 @@ from rich.text import Text
 
 from config import AgentConfig
 
-console = Console()
+# Force UTF-8 on Windows to avoid GBK encoding errors with emoji/unicode
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+console = Console(force_terminal=True)
 
 
 def print_welcome(config: AgentConfig):
@@ -22,18 +31,6 @@ def print_welcome(config: AgentConfig):
             border_style="cyan",
         )
     )
-
-
-def print_user_message(content: str):
-    """Display user input."""
-    console.print()
-    console.print(f"[bold green]You>[/bold green] {content}")
-
-
-def print_assistant_message(content: str):
-    """Render assistant response as Markdown."""
-    console.print()
-    console.print(Markdown(content))
 
 
 def print_tool_call(name: str, arguments: dict):
@@ -52,7 +49,6 @@ def print_tool_call(name: str, arguments: dict):
 def print_tool_result(name: str, result: str, is_error: bool = False):
     """Display tool result."""
     style = "red" if is_error else "dim"
-    # Truncate for display
     display = result if len(result) <= 2000 else result[:2000] + "\n... (truncated)"
     console.print(
         Panel(
@@ -71,6 +67,11 @@ def print_system_message(content: str):
 def print_error(content: str):
     """Bold red error messages."""
     console.print(f"[bold red]Error:[/bold red] {content}")
+
+
+def stream_markdown():
+    """Return a Live context for streaming markdown text."""
+    return Live(console=console, refresh_per_second=8, vertical_overflow="visible")
 
 
 def prompt_user() -> str:

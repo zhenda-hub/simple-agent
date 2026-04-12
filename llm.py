@@ -13,7 +13,6 @@ class LLMClient:
             "base_url": config.base_url,
             "api_key": config.api_key,
         }
-        # OpenRouter recommends these headers
         if config.provider == "openrouter":
             kwargs["default_headers"] = {
                 "HTTP-Referer": "https://github.com/simple-agent",
@@ -22,11 +21,12 @@ class LLMClient:
         self.client = OpenAI(**kwargs)
         self.model = config.model
 
-    def chat(self, messages: list[dict], tools: list[dict] | None = None):
-        """Send a chat completion request. Returns raw ChatCompletion."""
+    def chat_stream(self, messages: list[dict], tools: list[dict] | None = None):
+        """Stream a chat completion request. Yields chunks."""
         kwargs: dict = {
             "model": self.model,
             "messages": messages,
+            "stream": True,
         }
         if tools:
             kwargs["tools"] = tools

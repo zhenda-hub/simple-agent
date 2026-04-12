@@ -3,7 +3,6 @@
 from config import _detect_provider, fetch_free_models, load_config
 from formatter import (
     console,
-    print_assistant_message,
     print_error,
     print_system_message,
     print_welcome,
@@ -77,9 +76,7 @@ def main():
             print_system_message("Commands: /exit, /clear, /help")
             continue
 
-        response = agent.run(user_input)
-        if response:
-            print_assistant_message(response)
+        agent.run(user_input)
 
 
 if __name__ == "__main__":
