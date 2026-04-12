@@ -74,8 +74,9 @@ def print_error(content: str):
 
 
 def prompt_user() -> str:
-    """Prompt for user input. Returns empty string on EOF/KeyboardInterrupt."""
+    """Prompt for user input. Raises SystemExit on Ctrl+C/EOF."""
     try:
-        return console.input("[bold green]You>[/bold green] ").strip()
+        text = console.input("[bold green]You>[/bold green] ").strip()
     except (EOFError, KeyboardInterrupt):
-        return ""
+        raise SystemExit(0)
+    return text

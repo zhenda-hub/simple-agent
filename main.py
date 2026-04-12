@@ -6,7 +6,6 @@ from formatter import (
     print_assistant_message,
     print_error,
     print_system_message,
-    print_user_message,
     print_welcome,
     prompt_user,
 )
@@ -64,8 +63,7 @@ def main():
     while True:
         user_input = prompt_user()
         if not user_input:
-            print_system_message("Goodbye!")
-            break
+            continue
 
         lower = user_input.lower()
         if lower in ("/exit", "/quit"):
@@ -79,7 +77,6 @@ def main():
             print_system_message("Commands: /exit, /clear, /help")
             continue
 
-        print_user_message(user_input)
         response = agent.run(user_input)
         if response:
             print_assistant_message(response)
