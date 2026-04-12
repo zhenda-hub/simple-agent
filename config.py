@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
@@ -11,14 +12,19 @@ PROVIDERS = {
     "siliconflow": {
         "base_url": "https://api.siliconflow.cn/v1",
         "api_key_env": "SILICONFLOW_API_KEY",
-        "model_env": "SILICONFLOW_MODEL",
     },
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1",
         "api_key_env": "OPENROUTER_API_KEY",
-        "model_env": "OPENROUTER_MODEL",
     },
 }
+
+# Keywords to exclude when listing SiliconFlow chat models
+_NON_CHAT_KEYWORDS = (
+    "embedding", "reranker", "vl", "ocr", "tts", "asr", "image",
+    "edit", "kolors", "lora", "i2v", "t2v", "speech", "voice",
+    "captioner", "bge",
+)
 
 
 @dataclass
@@ -31,39 +37,54 @@ class AgentConfig:
     code_timeout: int = 30
 
 
-def _auto_detect_provider() -> str:
-    """Auto-detect provider based on which API key is set."""
+def _detect_provider() -> tuple[str, str, str]:
+    """Detect which provider has a valid API key. Returns (name, base_url, api_key)."""
+    # 1. Honor explicit LLM_PROVIDER setting
+    explicit = os.getenv("LLM_PROVIDER", "").lower()
+    if explicit in PROVIDERS:
+        key = os.getenv(PROVIDERS[explicit]["api_key_env"], "")
+        if key and not key.startswith("sk-your"):
+            return explicit, PROVIDERS[explicit]["base_url"], key
+
+    # 2. Auto-detect from available keys
     for name, cfg in PROVIDERS.items():
         key = os.getenv(cfg["api_key_env"], "")
         if key and not key.startswith("sk-your"):
-            return name
+            return name, cfg["base_url"], key
+
     raise ValueError(
         "No API key found. Set SILICONFLOW_API_KEY or OPENROUTER_API_KEY in .env or environment."
     )
 
 
-def load_config() -> AgentConfig:
-    """Load configuration from environment variables."""
-    provider_env = os.getenv("LLM_PROVIDER", "").lower()
-    provider = provider_env if provider_env in PROVIDERS else _auto_detect_provider()
+def fetch_free_models(provider: str, base_url: str, api_key: str) -> list[str]:
+    """Fetch free/available model IDs from provider's /v1/models endpoint."""
+    client = OpenAI(base_url=base_url, api_key=api_key)
+    models = client.models.list()
 
-    provider_cfg = PROVIDERS[provider]
-    api_key = os.getenv(provider_cfg["api_key_env"], "")
-    if not api_key or api_key.startswith("sk-your"):
-        raise ValueError(
-            f"Missing API key. Set {provider_cfg['api_key_env']} in .env or environment."
-        )
+    if provider == "openrouter":
+        # OpenRouter: free models have ":free" suffix
+        return sorted(m.id for m in models.data if ":free" in m.id)
 
-    model = os.getenv(provider_cfg["model_env"], "")
-    if not model:
-        raise ValueError(
-            f"Missing model. Set {provider_cfg['model_env']} in .env or environment."
-        )
+    # SiliconFlow: filter out Pro/ prefix and non-chat models
+    result = []
+    for m in models.data:
+        mid = m.id
+        if mid.startswith("Pro/"):
+            continue
+        if any(kw in mid.lower() for kw in _NON_CHAT_KEYWORDS):
+            continue
+        result.append(mid)
+    return sorted(result)
 
+
+def load_config(model: str) -> AgentConfig:
+    """Load configuration with the selected model."""
+    provider, base_url, api_key = _detect_provider()
     return AgentConfig(
         provider=provider,
         api_key=api_key,
-        base_url=provider_cfg["base_url"],
+        base_url=base_url,
         model=model,
         max_iterations=int(os.getenv("MAX_ITERATIONS", "15")),
         code_timeout=int(os.getenv("CODE_EXECUTION_TIMEOUT", "30")),
