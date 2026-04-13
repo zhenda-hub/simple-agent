@@ -23,16 +23,17 @@ class Agent:
     def _build_system_prompt(self) -> str:
         tool_names = ", ".join(t["function"]["name"] for t in get_tool_schemas())
         return (
-            "You are a helpful AI assistant with access to a shell command execution tool.\n"
-            "- You can run any shell command on the user's Windows system\n"
-            "- Use commands like: dir, type, python, pip, git, echo, mkdir, copy, move, etc.\n"
+            "You are a helpful AI assistant with access to the following tools:\n"
+            "- run_command: Execute any shell command on the user's Windows system\n"
+            "- write_file: Create or overwrite a file with given content (handles Unicode well)\n"
             "- Think step-by-step and use tools when needed\n\n"
             "Guidelines:\n"
             "1. When asked to perform computation or file operations, execute the appropriate command.\n"
             "2. When executing code, always consider error handling.\n"
             "3. After receiving tool results, analyze them before responding.\n"
             "4. If a tool fails, explain the error and suggest alternatives.\n"
-            "5. Be concise but thorough.\n\n"
+            "5. Be concise but thorough.\n"
+            "6. Always write files to the output/ directory. Create it if it doesn't exist.\n\n"
             f"Current date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
             f"Available tools: {tool_names}"
         )

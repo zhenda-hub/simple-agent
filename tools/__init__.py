@@ -58,4 +58,4 @@ def execute_tool(name: str, arguments: dict) -> str:
 
 
 # Import all tool modules to trigger @tool registration
-from tools import run_command  # noqa: E402, F401
+from tools import run_command, write_file  # noqa: E402, F401
